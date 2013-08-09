@@ -23,49 +23,46 @@ OauthModel = mongoose.model 'oauth', {
 
 init = () ->
   # Create an API client and start authentication via OAuth
-  client = new Fitbit(config.CONSUMER_KEY, config.CONSUMER_SECRET)
-  client.getRequestToken (err, token, tokenSecret) ->
-    # Take action
-    return  if err
+  #client = new Fitbit(config.CONSUMER_KEY, config.CONSUMER_SECRET)
+  #client.getRequestToken (err, token, tokenSecret) ->
+  # Take action
+  #return  if err
 
-    oauthSettings = {
-      requestToken: token
-      requestTokenSecret: tokenSecret
-    }
+  oauthSettings = {}
 
-    storedOauth = OauthModel.findOne()
-    storedOauth.select "accessToken accessTokenSecret"
+  storedOauth = OauthModel.findOne()
+  storedOauth.select "accessToken accessTokenSecret"
 
-    storedOauth.exec (err, response) ->
-      if err
-        console.log err
-        return
+  storedOauth.exec (err, oauthSettings) ->
+    if err
+      console.log err
+      return
 
-      if !response
-        console.log "Please validate using the oauth tool first"
-        return
+    if !oauthSettings
+      console.log "Please validate using the oauth tool first"
+      return
 
-      oauthSettings.accessToken = response.accessToken
-      oauthSettings.accessTokenSecret = response.accessTokenSecret
+    client = new Fitbit(config.CONSUMER_KEY, config.CONSUMER_SECRET,
+      # Now set with access tokens
+      accessToken: oauthSettings.accessToken
+      accessTokenSecret: oauthSettings.accessTokenSecret
+      unitMeasure: "en_GB"
+    )
 
-      sync oauthSettings
+    sync client
+    setInterval sync, 3600000, client
 
-sync = (oauth) ->
-  client = new Fitbit(config.CONSUMER_KEY, config.CONSUMER_SECRET,
-    # Now set with access tokens
-    accessToken: oauth.accessToken
-    accessTokenSecret: oauth.accessTokenSecret
-    unitMeasure: "en_GB"
-  )
+sync = (client) ->
 
   client.getDevices (err, devices) ->
     lastSyncTime = devices.device(0).lastSyncTime
 
     # Fetch todays activities
     client.getActivities (err, activities) ->
-
       # Take action
       return if err
+
+      console.log lastSyncTime
 
       steps = new StepsModel {
         steps: activities.steps()
@@ -79,6 +76,7 @@ sync = (oauth) ->
         timeDiffMin = Math.round timeDiffSec / 60
         stepsDiff = activities.steps() - doc.steps
         message = stepsDiff + " steps in the last " + timeDiffMin + " minutes"
+
         push.send "Get Off Your Ass", message
         console.log message
       )
