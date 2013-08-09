@@ -3,6 +3,7 @@ express = require "express"
 Fitbit = require "fitbit"
 mongoose = require 'mongoose'
 config = require "./config/app"
+pushover = require "node-pushover"
 
 app = express()
 app.use express.cookieParser()
@@ -11,15 +12,17 @@ app.listen 3000
 
 mongoose.connect 'mongodb://localhost/goya'
 
+push = new pushover {
+  token: config.PUSHOVER_TOKEN
+  user: config.PUSHOVER_USER
+}
+
 StepsModel = mongoose.model 'Steps', {
   steps: Number
   date: Date
 }
 
 OauthModel = mongoose.model 'oauth', {
-  requestToken: String
-  requestTokenSecret: String
-  verifier: String
   accessToken: String
   accessTokenSecret: String
 }
@@ -83,6 +86,10 @@ app.get "/oauth_callback", (req, res) ->
 
 # Display some stats
 app.get "/stats", (req, res) ->
+  if !req.session.oauth
+    res.redirect "/"
+    return
+
   client = new Fitbit(config.CONSUMER_KEY, config.CONSUMER_SECRET,
     # Now set with access tokens
     accessToken: req.session.oauth.accessToken
@@ -96,9 +103,6 @@ app.get "/stats", (req, res) ->
     # Take action
     return if err
 
-    # `activities` is a Resource model
-    res.send "Total steps today: " + activities.steps()
-
     steps = new StepsModel {
       steps: activities.steps()
       date: new Date()
@@ -106,3 +110,13 @@ app.get "/stats", (req, res) ->
 
     steps.save (err) ->
       console.log err if err
+
+    StepsModel.findOne({}, {}, {sort: {'date': -1}}, (err, doc) =>
+      lastDate = doc.date
+      now = new Date()
+      timeDiffSec = Math.round (now.getTime() - lastDate.getTime()) / 1000
+      timeDiffMin = Math.round timeDiffSec / 60
+      stepsDiff = activities.steps() - doc.steps
+      push.send "Get Off Your Ass", stepsDiff + " steps in the last " + timeDiffMin + " minutes"
+      res.send stepsDiff + " steps in the last " + timeDiffMin + " minutes"
+    )

@@ -9,7 +9,8 @@
     "connect": "~2.8.4",
     "fitbit": "0.0.2",
     "coffee-script": "~1.6.3",
-    "mongoose": "~3.6.16"
+    "mongoose": "~3.6.16",
+    "node-pushover": "~0.2.2"
   },
   "devDependencies": {},
   "scripts": {
