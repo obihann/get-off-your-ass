@@ -97,26 +97,31 @@ app.get "/stats", (req, res) ->
     unitMeasure: "en_GB"
   )
 
-  # Fetch todays activities
-  client.getActivities (err, activities) ->
+  client.getDevices (err, devices) ->
+    lastSyncTime = devices.device(0).lastSyncTime
 
-    # Take action
-    return if err
+    # Fetch todays activities
+    client.getActivities (err, activities) ->
 
-    steps = new StepsModel {
-      steps: activities.steps()
-      date: new Date()
-    }
+      # Take action
+      return if err
 
-    steps.save (err) ->
-      console.log err if err
+      steps = new StepsModel {
+        steps: activities.steps()
+        date: new Date()
+      }
 
-    StepsModel.findOne({}, {}, {sort: {'date': -1}}, (err, doc) =>
-      lastDate = doc.date
-      now = new Date()
-      timeDiffSec = Math.round (now.getTime() - lastDate.getTime()) / 1000
-      timeDiffMin = Math.round timeDiffSec / 60
-      stepsDiff = activities.steps() - doc.steps
-      push.send "Get Off Your Ass", stepsDiff + " steps in the last " + timeDiffMin + " minutes"
-      res.send stepsDiff + " steps in the last " + timeDiffMin + " minutes"
-    )
+      #console.log lastSyncTime.getTime
+
+      ###steps.save (err) ->
+        console.log err if err###
+
+      StepsModel.findOne({}, {}, {sort: {'date': -1}}, (err, doc) =>
+        lastDate = doc.date
+        now = new Date()
+        timeDiffSec = Math.round (now.getTime() - lastDate.getTime()) / 1000
+        timeDiffMin = Math.round timeDiffSec / 60
+        stepsDiff = activities.steps() - doc.steps
+        #push.send "Get Off Your Ass", stepsDiff + " steps in the last " + timeDiffMin + " minutes"
+        res.send stepsDiff + " steps in the last " + timeDiffMin + " minutes"
+      )
