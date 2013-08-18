@@ -5,7 +5,7 @@ moment = require "moment-timezone"
 config = require "./config/app"
 pushover = require "node-pushover"
 
-mongoose.connect 'mongodb://localhost/goya'
+mongoose.connect "mongodb://"+config.MONGO_USER+":"+config.MONGO_PASS+".mongolab.com:41238/goya"
 
 push = new pushover {
 	token: config.PUSHOVER_TOKEN
@@ -59,25 +59,28 @@ sync = (client) ->
 			}
 
 			StepsModel.findOne({}, {}, {sort: {'date': -1}}, (err, doc) =>
-				lastDate = moment(doc.date).format("X")
+				if doc
+					lastDate = moment(doc.date).format("X")
 
-				if lastSyncTime > lastDate
-					###steps.save (err) ->
-						return if err###
+					if lastSyncTime > lastDate
+						steps.save (err) ->
+							return if err
 
-					now = moment(new Date()).format("X")
-					timeDiffSec = Math.round (now - lastDate)
-					timeDiffMin = Math.round timeDiffSec / 60
-					stepsDiff = activities.steps() - doc.steps
+						now = moment(new Date()).format("X")
+						timeDiffSec = Math.round (now - lastDate)
+						timeDiffMin = Math.round timeDiffSec / 60
+						stepsDiff = activities.steps() - doc.steps
 
-					message = stepsDiff + " steps in the last " + timeDiffMin + " minutes"
+						message = stepsDiff + " steps in the last " + timeDiffMin + " minutes"
 
-					#push.send "Get Off Your Ass", message
-					console.log message
+						push.send "Get Off Your Ass", message
+						console.log message
+					else
+						push.send "Get Off Your Ass", "Sync your FitBit!"
+						console.log "FitBit data not up to date"
 				else
-					push.send "Get Off Your Ass", "Sync your FitBit!"
-					console.log "FitBit data not up to date"
-
+					steps.save (err) ->
+						return if err
 			)
 
 init()

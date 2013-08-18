@@ -9,7 +9,7 @@ app.use express.cookieParser()
 app.use express.session(secret: "hekdhthigib")
 app.listen 3000
 
-mongoose.connect 'mongodb://localhost/goya'
+mongoose.connect "mongodb://"+config.MONGO_USER+":"+config.MONGO_PASS+".mongolab.com:41238/goya"
 
 OauthModel = mongoose.model 'oauth', {
   accessToken: String
