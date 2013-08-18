@@ -10,7 +10,8 @@
     "fitbit": "0.0.2",
     "coffee-script": "~1.6.3",
     "mongoose": "~3.6.16",
-    "node-pushover": "~0.2.2"
+    "node-pushover": "~0.2.2",
+    "moment-timezone": "0.0.2"
   },
   "devDependencies": {},
   "scripts": {
